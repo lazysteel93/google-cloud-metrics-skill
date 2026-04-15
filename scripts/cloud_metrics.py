@@ -302,7 +302,7 @@ def output_json(all_series: list, show_stats: bool, latest_only: bool) -> None:
 
         output.append(item)
 
-    print(json.dumps(output, indent=2, default=str))
+    print(json.dumps(output, separators=(',', ':'), default=str))
 
 
 def output_csv(all_series: list, latest_only: bool) -> None:
@@ -391,13 +391,12 @@ def output_table(all_series: list, show_stats: bool, latest_only: bool) -> None:
     else:
         # Full data points view
         for i, series in enumerate(all_series, 1):
-            print(f"\nTime Series #{i}")
-            print(f"  {series['label_str']}")
-            print("  Data Points:")
+            print(f"\n[{i}] {series['label_str']}")
             for point in series["points"][:20]:  # Limit to 20 points
-                print(f"    {point['timestamp']}: {format_value(point['value'])}")
+                ts = datetime.fromisoformat(point['timestamp']).strftime('%m-%d %H:%M:%S')
+                print(f"  {ts}  {format_value(point['value'])}")
             if len(series["points"]) > 20:
-                print(f"    ... ({len(series['points']) - 20} more points)")
+                print(f"  ... ({len(series['points']) - 20} more points)")
 
 
 def describe_metric(project_id: str, metric_type: str) -> None:
@@ -523,17 +522,6 @@ def describe_metric(project_id: str, metric_type: str) -> None:
                 sample_str = f" (e.g., {', '.join(repr(s) for s in samples)})" if samples else ""
                 print(f"  metadata.system_labels.{label}{sample_str}")
 
-        print("\nFilter Examples:")
-        print(f'  -f \'metric.type = "{metric_type}"\'')
-        for label in sorted(resource_labels)[:3]:
-            samples = list(sample_values.get(label, []))
-            if samples:
-                print(f'  -f \'resource.labels.{label}="{samples[0]}"\'')
-        for label in sorted(system_labels)[:2]:
-            samples = list(system_sample_values.get(label, []))
-            if samples:
-                print(f'  -f \'metadata.system_labels.{label}="{samples[0]}"\'')
-
     except Exception as e:
         print(f"Error describing metric: {e}")
         sys.exit(1)
@@ -574,11 +562,7 @@ def list_metrics(project_id: str, filter_prefix: Optional[str] = None) -> None:
             count += 1
             kind = metric_kind_names.get(descriptor.metric_kind, str(descriptor.metric_kind))
             value = value_type_names.get(descriptor.value_type, str(descriptor.value_type))
-            print(f"{descriptor.type}")
-            print(f"  Display: {descriptor.display_name}")
-            print(f"  Kind:    {kind}")
-            print(f"  Value:   {value}")
-            print()
+            print(f"{descriptor.type}  [{kind}/{value}]  {descriptor.display_name}")
 
         print(f"Total: {count} metrics")
     except Exception as e:
